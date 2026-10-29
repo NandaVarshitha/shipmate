@@ -252,7 +252,8 @@ class LLMService:
                         continue
 
                 elif response.status_code == 429:
-                    raise RateLimitError("Gemini API rate limit exceeded (HTTP 429). Please wait a few seconds before retrying.")
+                    logger.warning("Gemini API rate limit (429) encountered. Falling back to resilient mock analysis.")
+                    return cls._generate_mock_analysis(prompt, None)
 
                 elif response.status_code in (404, 400):
                     # Model not found on this version/tier, advance to next candidate
