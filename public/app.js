@@ -199,10 +199,22 @@ function setWorkflowStep(stepNum) {
   }
 }
 
+// Resilient API Fetch Helper for Local & Vercel Environments
+async function apiFetch(endpoint, options = {}) {
+  const clean = endpoint.startsWith("/api") ? endpoint.slice(4) : endpoint;
+  try {
+    const res = await fetch(clean, options);
+    if (res.status !== 404) return res;
+  } catch (e) {
+    // Fall back to /api prefix
+  }
+  return await fetch(`/api${clean}`, options);
+}
+
 // Health Check API
 async function checkHealth() {
   try {
-    const res = await fetch("/api/health");
+    const res = await apiFetch("/health");
     if (res.ok) {
       const data = await res.json();
       if (data.has_gemini_key) {
@@ -217,14 +229,14 @@ async function checkHealth() {
       }
     }
   } catch (err) {
-    console.warn("Could not reach /api/health:", err);
+    console.warn("Could not reach /health:", err);
   }
 }
 
 // Load Samples API
 async function loadSamples() {
   try {
-    const res = await fetch("/api/samples");
+    const res = await apiFetch("/samples");
     if (res.ok) {
       samplesData = await res.json();
       if (samplesData.samples) {
@@ -295,7 +307,7 @@ async function handleAnalyze() {
   };
 
   try {
-    const res = await fetch("/api/analyze", {
+    const res = await apiFetch("/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -482,7 +494,7 @@ async function handleDeepDive(issue, index, btn) {
   btn.disabled = true;
 
   try {
-    const res = await fetch("/api/deep-dive", {
+    const res = await apiFetch("/deep-dive", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
