@@ -7,7 +7,7 @@
 // Application State
 let currentShipPack = null;
 let currentCodeInput = "";
-let currentInputType = "Diff";
+let currentInputType = "Git Diff";
 let samplesData = { demo_change: null, samples: {} };
 let sessionHistory = [];
 
@@ -102,12 +102,13 @@ function setupEventListeners() {
     });
   });
 
-  // Try Demo Change
+  // Try Demo Change (Payment Retry)
   btnTryDemo.addEventListener("click", () => {
     if (samplesData.demo_change) {
       codeTextarea.value = samplesData.demo_change.diff;
       contextInput.value = samplesData.demo_change.context;
-      showToast("Loaded Stripe Webhook Idempotency demo diff");
+      showToast("Loaded Payment Retry demo change");
+      setWorkflowStep(1);
     }
   });
 
@@ -115,6 +116,7 @@ function setupEventListeners() {
   btnClearInputs.addEventListener("click", () => {
     codeTextarea.value = "";
     contextInput.value = "";
+    setWorkflowStep(1);
   });
 
   // Load Preset Sample
@@ -125,6 +127,7 @@ function setupEventListeners() {
       codeTextarea.value = sample.diff;
       contextInput.value = sample.context || "";
       showToast(`Loaded sample: ${sample.title}`);
+      setWorkflowStep(1);
     }
   });
 
@@ -174,15 +177,25 @@ function setupEventListeners() {
 
 function updateInputLabels(type) {
   const codeLabel = document.getElementById("codeLabel");
-  if (type === "Diff") {
-    codeLabel.textContent = "Your Code Change (Git Diff / Patch)";
-    codeTextarea.placeholder = "Paste your git diff or patch here (e.g. git diff origin/main)...";
-  } else if (type === "Change") {
-    codeLabel.textContent = "Your Code Change (Before / After)";
-    codeTextarea.placeholder = "Paste your change description, before/after snippet, or PR body...";
-  } else {
+  if (type === "Code") {
     codeLabel.textContent = "Your Code (Source File / Snippet)";
     codeTextarea.placeholder = "Paste complete source code file or function to review...";
+  } else {
+    codeLabel.textContent = "Your Code Change (Git Diff / Patch)";
+    codeTextarea.placeholder = "Paste your git diff or patch here (e.g. git diff origin/main)...";
+  }
+}
+
+function setWorkflowStep(stepNum) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`flowStep${i}`);
+    if (el) {
+      if (i === stepNum) {
+        el.classList.add("active");
+      } else {
+        el.classList.remove("active");
+      }
+    }
   }
 }
 
@@ -241,6 +254,7 @@ async function handleAnalyze() {
   }
 
   currentCodeInput = code;
+  setWorkflowStep(2);
   emptyState.style.display = "none";
   resultsContainer.style.display = "none";
   statusBox.classList.add("active");
@@ -320,6 +334,7 @@ async function handleAnalyze() {
 
 // Render Analysis Dashboard
 function renderAnalysis(data) {
+  setWorkflowStep(5);
   // 1. Ship Score
   const score = data.ship_score !== undefined ? data.ship_score : 70;
   scoreNumber.textContent = score;
@@ -553,8 +568,8 @@ function buildCompleteShipPackMarkdown(analysis) {
     return `- [${(t.priority || "MED").toUpperCase()}] **${name}**: ${desc}`;
   }).join("\n");
 
-  return `# Shipmate Release Pack
-*Generated on ${dateStr} by Shipmate AI*
+  return `# ShipMate Release Pack
+*Generated on ${dateStr} by ShipMate*
 
 ## 1. Executive Summary
 - **Ship Score**: ${analysis.ship_score !== undefined ? analysis.ship_score : 70}/100 (${analysis.score_factor_explanation || analysis.ship_score_factor || "AI Assessment"})

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shipmate — AI Developer Shipping Assistant</title>
-  <meta name="description" content="Shipmate understands what changed, assesses risk, designs targeted tests, and compiles ready-to-share ship packs for software teams.">
+  <title>ShipMate — AI Developer Shipping Assistant</title>
+  <meta name="description" content="Turn any code change into a ready-to-ship package. ShipMate reviews your change, identifies potential risks, recommends tests, and generates the updates and documentation you need to ship.">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -12,35 +12,6 @@
 <div class="app-container">
   <!-- Left Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-title">
-      <span>⚙️ Engine Settings</span>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="form-group">
-        <label class="form-label" for="providerSelect">AI Provider</label>
-        <select id="providerSelect" class="form-select">
-          <option value="gemini">Google Gemini (Recommended)</option>
-          <option value="openai">OpenAI</option>
-          <option value="demo">Demo Mode (Built-in Mock)</option>
-        </select>
-        <div class="form-caption" id="providerCaption">Powered by Google Gemini 1.5 Flash.</div>
-      </div>
-
-      <div class="form-group" id="modelGroup">
-        <label class="form-label" for="modelInput">Model</label>
-        <input type="text" id="modelInput" class="form-input" value="gemini-1.5-flash">
-      </div>
-
-      <div class="form-group" id="apiKeyGroup">
-        <label class="form-label" for="apiKeyInput">API Key (Optional Override)</label>
-        <input type="password" id="apiKeyInput" class="form-input" placeholder="Server env key used by default" autocomplete="off">
-        <div class="form-caption" id="apiKeyStatus">
-          🔒 Server environment variable <code>GEMINI_API_KEY</code> is active.
-        </div>
-      </div>
-    </div>
-
     <!-- Quick Load Preset Samples -->
     <div class="sidebar-title">
       <span>📂 Sample Diffs</span>
@@ -65,6 +36,33 @@
     <div id="historyContainer" class="sidebar-section" style="border-bottom: none;">
       <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">No analyses in this session yet.</div>
     </div>
+
+    <!-- Collapsed Advanced Settings -->
+    <details class="sidebar-details">
+      <summary class="sidebar-summary">⚙️ Advanced Settings</summary>
+      <div class="sidebar-details-content">
+        <div class="form-group">
+          <label class="form-label" for="providerSelect">AI Provider</label>
+          <select id="providerSelect" class="form-select">
+            <option value="gemini">Google Gemini (Recommended)</option>
+            <option value="openai">OpenAI</option>
+            <option value="demo">Demo Mode (Built-in Mock)</option>
+          </select>
+          <div class="form-caption" id="providerCaption">Powered by Google Gemini 1.5 Flash.</div>
+        </div>
+
+        <div class="form-group" id="modelGroup">
+          <label class="form-label" for="modelInput">Model</label>
+          <input type="text" id="modelInput" class="form-input" value="gemini-1.5-flash">
+        </div>
+      </div>
+    </details>
+
+    <!-- Hidden API Key Override (Uses server-side environment variable) -->
+    <div id="apiKeyGroup" style="display: none;">
+      <input type="password" id="apiKeyInput" autocomplete="off">
+      <div id="apiKeyStatus"></div>
+    </div>
   </aside>
 
   <!-- Main Content Area -->
@@ -72,32 +70,30 @@
     <!-- Hero Header -->
     <header class="shipmate-hero">
       <div class="shipmate-title-row">
-        <h1 class="shipmate-brand-title">Shipmate</h1>
+        <h1 class="shipmate-brand-title">ShipMate</h1>
         <span class="shipmate-flow-badge">Code Change → Ready to Ship</span>
       </div>
       <p class="shipmate-description">
-        Paste your code change. Shipmate understands what changed first, finds risk, creates a test, and prepares everything you need to ship.
+        Turn any code change into a ready-to-ship package. ShipMate reviews your change, identifies potential risks, recommends tests, and generates the updates and documentation you need to ship.
       </p>
       <div class="shipmate-flow-steps">
-        <span>1. Paste Diff</span>
+        <span class="step-chip active" id="flowStep1">1. Paste Change</span>
         <span>→</span>
-        <span>2. Analyze Change</span>
+        <span class="step-chip" id="flowStep2">2. Analyze</span>
         <span>→</span>
-        <span>3. Ship Score &amp; Risk</span>
+        <span class="step-chip" id="flowStep3">3. Review Risks</span>
         <span>→</span>
-        <span>4. Verify Tests</span>
+        <span class="step-chip" id="flowStep4">4. Verify Tests</span>
         <span>→</span>
-        <span>5. Review Issues</span>
-        <span>→</span>
-        <span class="step-ship">6. Ready to Ship 🚀</span>
+        <span class="step-chip step-final" id="flowStep5">5. Ship Pack 🚀</span>
       </div>
     </header>
 
     <!-- Controls & Toolbar -->
     <section class="toolbar-row">
       <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <button type="button" id="btnTryDemo" class="btn btn-secondary btn-sm">
-          ⚡ Try Demo Change
+        <button type="button" id="btnTryDemo" class="btn btn-demo-prominent">
+          ⚡ Try Demo — Payment Retry
         </button>
         <button type="button" id="btnClearInputs" class="btn btn-secondary btn-sm">
           Clear
@@ -105,16 +101,15 @@
       </div>
 
       <div class="btn-group" role="group" aria-label="Input format selector">
-        <button type="button" class="btn-segment active" data-type="Diff">Diff</button>
-        <button type="button" class="btn-segment" data-type="Change">Change</button>
+        <button type="button" class="btn-segment active" data-type="Git Diff">Git Diff</button>
         <button type="button" class="btn-segment" data-type="Code">Code</button>
       </div>
     </section>
 
     <!-- Code Input Section -->
     <section class="form-group">
-      <label class="form-label" for="codeTextarea" id="codeLabel">Your Code Change</label>
-      <textarea id="codeTextarea" class="form-textarea" rows="12" placeholder="Paste your git diff, patch, or modified code here (e.g. git diff origin/main)..."></textarea>
+      <label class="form-label" for="codeTextarea" id="codeLabel">Your Code Change (Git Diff / Patch)</label>
+      <textarea id="codeTextarea" class="form-textarea" rows="12" placeholder="Paste your git diff or patch here (e.g. git diff origin/main)..."></textarea>
     </section>
 
     <!-- Context Input Section -->
@@ -157,7 +152,7 @@
       <div style="font-size: 2.25rem; margin-bottom: 0.5rem;">🚢</div>
       <div class="empty-state-title">Ready for Your Next Release</div>
       <p class="empty-state-desc">
-        Paste a git diff or code change above, or click <strong>⚡ Try Demo Change</strong> to see Shipmate's staff-level risk assessment and automated ShipPack deliverables.
+        Paste a git diff or code change above, or click <strong>⚡ Try Demo — Payment Retry</strong> to see ShipMate's AI-assisted code risk assessment and automated Ship Pack.
       </p>
       <div class="empty-features">
         <span class="empty-feature-badge">⚡ Ship Score 0–100</span>

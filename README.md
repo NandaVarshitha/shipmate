@@ -1,7 +1,7 @@
-# 🚢 Shipmate: AI-Powered Developer Shipping Assistant
+# 🚢 ShipMate: Code Change → Ready to Ship
 
-> **From Code Change to Ship Pack in Seconds.**  
-> Paste a git diff once. Shipmate generates risk evaluations, bug hunting scenarios, test matrices, manager updates, ticket markdown, technical docs, release notes, and a definitive shipping readiness verdict.
+> **Turn any code change into a ready-to-ship package.**  
+> ShipMate reviews your change, identifies potential risks, recommends tests, and generates the updates and documentation you need to ship.
 
 ---
 
@@ -14,7 +14,7 @@ When developers finish writing code, coding is often only half the job. Before s
 5. Updating architecture/API documentation.
 6. Drafting customer-facing release notes.
 
-**Shipmate solves this.** Developers paste their `git diff` once, and Shipmate's Staff-level AI generates a comprehensive, structured **Ship Pack**.
+**ShipMate solves this.** Developers paste their code change once, and ShipMate's AI-assisted code risk assessment generates a comprehensive, structured **Ship Pack**.
 
 ---
 

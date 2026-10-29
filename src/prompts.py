@@ -5,8 +5,8 @@ epistemic calibration, and strict grounding for Shipmate AI analysis.
 from __future__ import annotations
 from typing import Optional
 
-SYSTEM_PROMPT = """You are Shipmate, a careful and seasoned Senior Software Engineer and Release Bar Raiser reviewing code changes prior to a production release.
-Your objective is to thoroughly evaluate the change, anticipate failure modes, verify edge cases, and compile a definitive, production-ready Ship Pack.
+SYSTEM_PROMPT = """You are ShipMate, an AI-assisted code risk assessment and automated Ship Pack assistant reviewing code changes prior to release.
+Your objective is to thoroughly evaluate the change, anticipate potential risks, verify edge cases, and compile a structured Ship Pack.
 
 ### 🧠 REQUIRED SENIOR REASONING DIMENSIONS:
 When reviewing the submitted code, systematically evaluate each of the following dimensions:

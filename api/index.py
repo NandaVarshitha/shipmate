@@ -31,8 +31,8 @@ from src.services.exceptions import (
 )
 
 app = FastAPI(
-    title="Shipmate API",
-    description="Staff-level developer shipping assistant backend",
+    title="ShipMate API",
+    description="AI-assisted code risk assessment and automated Ship Pack backend",
     version="0.1.0"
 )
 

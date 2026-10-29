@@ -92,6 +92,6 @@ class Config(metaclass=ConfigMeta):
         return prov if prov in ("gemini", "openai", "demo") else "gemini"
 
     # App Settings
-    APP_TITLE: str = "Shipmate"
-    APP_TAGLINE: str = "AI-Powered Developer Shipping Assistant"
+    APP_TITLE: str = "ShipMate"
+    APP_TAGLINE: str = "Code Change → Ready to Ship"
     APP_VERSION: str = "0.1.0"

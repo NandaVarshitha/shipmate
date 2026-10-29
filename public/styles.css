@@ -197,25 +197,81 @@ body {
 .shipmate-flow-steps {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.76rem;
+  gap: 0.45rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
   flex-wrap: wrap;
 }
 
-.shipmate-flow-steps span {
+.shipmate-flow-steps .step-chip {
   background: var(--bg-secondary);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
   border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
 }
 
-.shipmate-flow-steps .step-ship {
+.shipmate-flow-steps .step-chip.active {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 700;
+}
+
+.shipmate-flow-steps .step-chip.step-final {
   background: var(--success-bg);
   color: var(--success-text);
   border-color: var(--success-border);
   font-weight: 700;
+}
+
+.sidebar-details {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.sidebar-summary {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0.85rem;
+  outline: none;
+}
+
+.sidebar-summary:hover {
+  color: var(--text-main);
+}
+
+.sidebar-details-content {
+  margin-top: 0.75rem;
+}
+
+.btn-demo-prominent {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+}
+
+.btn-demo-prominent:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
 /* Control Toolbar */
