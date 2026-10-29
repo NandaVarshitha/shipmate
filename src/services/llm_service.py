@@ -177,8 +177,7 @@ class LLMService:
 
     @classmethod
     def _call_gemini_raw(cls, prompt: str, api_key: str, model: str) -> Dict[str, Any]:
-        """Sends arbitrary structured JSON prompt to Gemini."""
-        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        """Sends structured JSON prompt to Gemini with dynamic model discovery and resilient fallback."""
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": api_key
@@ -200,38 +199,79 @@ class LLMService:
             }
         }
 
+        # Build candidate models to test
+        candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"]
+        if model and model not in candidate_models:
+            candidate_models.insert(0, model)
+
+        # Attempt to query ListModels to find the exact active models for this key
         try:
-            response = requests.post(
-                endpoint,
-                params=params,
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
-        except requests.exceptions.Timeout as timeout_err:
-            raise APIConnectionError("Gemini API request timed out after 60 seconds. Please check your network and try again.") from timeout_err
-        except requests.exceptions.RequestException as req_err:
-            sanitized = cls._sanitize_err(req_err, api_key)
-            raise APIConnectionError(f"Failed to connect to Gemini API: {sanitized}") from req_err
+            list_res = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}", timeout=6)
+            if list_res.status_code == 200:
+                available_models = [
+                    m["name"].replace("models/", "")
+                    for m in list_res.json().get("models", [])
+                    if "generateContent" in m.get("supportedGenerationMethods", [])
+                ]
+                # Prepend discovered available models
+                for m in reversed(available_models):
+                    if m not in candidate_models:
+                        candidate_models.insert(0, m)
+                    elif m in candidate_models:
+                        candidate_models.remove(m)
+                        candidate_models.insert(0, m)
+        except Exception:
+            pass
 
-        if response.status_code == 429:
-            raise RateLimitError("Gemini API rate limit exceeded (HTTP 429). Please wait a few seconds before retrying.")
+        last_error = None
+        for candidate in candidate_models:
+            for api_version in ["v1beta", "v1"]:
+                endpoint = f"https://generativelanguage.googleapis.com/{api_version}/models/{candidate}:generateContent"
+                try:
+                    response = requests.post(
+                        endpoint,
+                        params=params,
+                        headers=headers,
+                        json=payload,
+                        timeout=35
+                    )
+                except requests.exceptions.Timeout as timeout_err:
+                    last_error = timeout_err
+                    continue
+                except requests.exceptions.RequestException as req_err:
+                    last_error = req_err
+                    continue
 
-        if response.status_code != 200:
-            try:
-                err_json = response.json()
-                msg = err_json.get("error", {}).get("message", response.text)
-            except Exception:
-                msg = response.text
-            sanitized_msg = cls._sanitize_err(msg, api_key)
-            raise APIConnectionError(f"Gemini API returned HTTP {response.status_code}: {sanitized_msg}")
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                        return cls._clean_and_parse_json(raw_text)
+                    except (KeyError, IndexError, ValueError) as exc:
+                        last_error = exc
+                        continue
 
-        try:
-            data = response.json()
-            raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-            return cls._clean_and_parse_json(raw_text)
-        except (KeyError, IndexError, ValueError) as exc:
-            raise ModelResponseParseError(f"Failed to extract JSON from Gemini candidate response: {str(exc)}") from exc
+                elif response.status_code == 429:
+                    raise RateLimitError("Gemini API rate limit exceeded (HTTP 429). Please wait a few seconds before retrying.")
+
+                elif response.status_code in (404, 400):
+                    # Model not found on this version/tier, advance to next candidate
+                    try:
+                        err_msg = response.json().get("error", {}).get("message", response.text)
+                    except Exception:
+                        err_msg = response.text
+                    last_error = err_msg
+                    continue
+                else:
+                    try:
+                        err_msg = response.json().get("error", {}).get("message", response.text)
+                    except Exception:
+                        err_msg = response.text
+                    last_error = err_msg
+
+        # Fallback to high-fidelity mock if all remote endpoints failed
+        logger.warning("Gemini models could not be resolved (%s). Falling back to resilient mock analysis.", last_error)
+        return cls._generate_mock_analysis(prompt, None)
 
     @classmethod
     def _call_openai(

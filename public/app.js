@@ -80,8 +80,8 @@ function setupEventListeners() {
   providerSelect.addEventListener("change", () => {
     const provider = providerSelect.value;
     if (provider === "gemini") {
-      modelInput.value = "gemini-1.5-flash";
-      providerCaption.textContent = "Powered by Google Gemini 1.5 Flash (default).";
+      modelInput.value = "gemini-2.0-flash";
+      providerCaption.textContent = "Powered by Google Gemini 2.0 Flash (Recommended).";
     } else if (provider === "openai") {
       modelInput.value = "gpt-4o-mini";
       providerCaption.textContent = "Powered by OpenAI GPT-4o-mini.";

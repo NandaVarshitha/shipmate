@@ -76,7 +76,7 @@ class Config(metaclass=ConfigMeta):
 
     @classmethod
     def get_gemini_model(cls) -> str:
-        return get_secret_or_env("GEMINI_MODEL", "gemini-1.5-flash")
+        return get_secret_or_env("GEMINI_MODEL", "gemini-2.0-flash")
 
     @classmethod
     def get_openai_api_key(cls) -> Optional[str]:
