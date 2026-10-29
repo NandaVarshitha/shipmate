@@ -32,28 +32,33 @@ Every analysis produces 9 synchronized deliverables:
 
 ---
 
-## 🏗️ Project Architecture
+## 🏗️ Project Architecture & Vercel Deployment Model
+Shipmate uses a modern decoupled architecture optimized for **Vercel Serverless Functions**:
+- **Backend API (`api/index.py`)**: Lightweight FastAPI serverless application serving `/api/analyze`, `/api/deep-dive`, `/api/samples`, and `/api/health`.
+- **Frontend (`public/`)**: Modern vanilla HTML/CSS/JavaScript with responsive layout, zero compilation overhead, dynamic progress loading, and instant copy/download.
+- **AI Core (`src/`)**: Pydantic models (`src/models.py`), LLM service (`src/services/llm_service.py`), and prompts (`src/prompts.py`).
+
 ```
 shipmate/
 ├── .env.example              # Environment variables template
-├── .gitignore                # Git ignore rules
-├── requirements.txt          # Python package dependencies
-├── README.md                 # Project documentation and quickstart
-├── app.py                    # Streamlit application entrypoint
+├── .gitignore                # Git ignore rules (protects keys and .env)
+├── vercel.json               # Vercel serverless routing configuration
+├── requirements.txt          # Python serverless dependencies (FastAPI, Pydantic, etc.)
+├── README.md                 # Project documentation
+├── api/
+│   └── index.py              # FastAPI serverless entrypoint for Vercel (/api/*)
+├── public/
+│   ├── index.html            # Modern developer tool web interface
+│   ├── styles.css            # Custom CSS design system (dark/light theme)
+│   └── app.js                # Frontend client logic & interactive features
 └── src/
-    ├── __init__.py
-    ├── config.py             # Settings, defaults, and environment loading
-    ├── models.py             # Pydantic v2 schemas enforcing strict JSON outputs
-    ├── prompts.py            # Prompt engineering and system instructions
-    ├── sample_diffs.py       # Realistic git diffs for instant 1-click demos
-    ├── services/
-    │   ├── __init__.py
-    │   ├── llm_provider.py   # Multi-provider client (Gemini REST, OpenAI, Demo/Mock)
-    │   └── analyzer.py       # Orchestration layer and response validation
-    └── ui/
-        ├── __init__.py
-        ├── styles.py         # Modern CSS styles (clean typography, badges, pills)
-        └── components.py     # Streamlit UI renderers (Readiness hero, tab views, export)
+    ├── config.py             # Settings and safe environment variable loader
+    ├── models.py             # Pydantic v2 validation models
+    ├── prompts.py            # Senior staff-level prompt engineering
+    ├── sample_diffs.py       # Curated real-world git diffs
+    └── services/
+        ├── llm_service.py    # Multi-provider LLM service (Gemini, OpenAI, Demo)
+        └── exceptions.py     # Custom error hierarchy
 ```
 
 ---
@@ -79,20 +84,26 @@ Add your API key:
 ```env
 GEMINI_API_KEY=your_actual_api_key_here
 ```
-> *Note: If no API key is provided, Shipmate runs seamlessly in **Demo Mode**, generating high-fidelity simulated Ship Packs from curated real-world diffs.*
+> *Note: If no API key is configured, Shipmate runs seamlessly in **Demo Mode**, generating high-fidelity simulated Ship Packs from curated real-world diffs.*
 
-### 4. Run the Streamlit App
+### 4. Run Locally
 ```bash
-streamlit run app.py
+python -m uvicorn api.index:app --port 8000 --reload
 ```
-Open your browser to `http://localhost:8501`.
+Open your browser to `http://127.0.0.1:8000`.
 
 ---
 
-## ⚡ Hackathon Presentation Tip
-Shipmate includes **3 built-in realistic sample diffs** in the sidebar:
-- **Auth Race Condition**: Double-checked locking and token refresh storm fix.
-- **Stripe Webhook Idempotency**: Payment transaction wrapping and duplicate event prevention.
-- **Database Connection Pooling**: SQLAlchemy connection recycle and pre-ping resilience.
+## ☁️ Deploy to Vercel
 
-Click **"Load Sample into Editor"** and hit **"🚀 Generate Ship Pack"** for an instant, show-stopping live demo!
+1. Push your repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Deploy Shipmate to Vercel"
+   git push origin main
+   ```
+2. Import the repository in [Vercel](https://vercel.com/new).
+3. Under **Project Settings → Environment Variables**, add:
+   - `GEMINI_API_KEY`: Your Google Gemini API key.
+4. Click **Deploy**. Vercel will automatically build the static assets and deploy the FastAPI serverless functions in `api/index.py`!
+

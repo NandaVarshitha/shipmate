@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipmate — AI Developer Shipping Assistant</title>
+  <meta name="description" content="Shipmate understands what changed, assesses risk, designs targeted tests, and compiles ready-to-share ship packs for software teams.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-title">
+      <span>⚙️ Engine Settings</span>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="form-group">
+        <label class="form-label" for="providerSelect">AI Provider</label>
+        <select id="providerSelect" class="form-select">
+          <option value="gemini">Google Gemini (Recommended)</option>
+          <option value="openai">OpenAI</option>
+          <option value="demo">Demo Mode (Built-in Mock)</option>
+        </select>
+        <div class="form-caption" id="providerCaption">Powered by Google Gemini 1.5 Flash.</div>
+      </div>
+
+      <div class="form-group" id="modelGroup">
+        <label class="form-label" for="modelInput">Model</label>
+        <input type="text" id="modelInput" class="form-input" value="gemini-1.5-flash">
+      </div>
+
+      <div class="form-group" id="apiKeyGroup">
+        <label class="form-label" for="apiKeyInput">API Key (Optional Override)</label>
+        <input type="password" id="apiKeyInput" class="form-input" placeholder="Server env key used by default" autocomplete="off">
+        <div class="form-caption" id="apiKeyStatus">
+          🔒 Server environment variable <code>GEMINI_API_KEY</code> is active.
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Load Preset Samples -->
+    <div class="sidebar-title">
+      <span>📂 Sample Diffs</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="form-group">
+        <select id="sampleSelect" class="form-select">
+          <option value="">-- Choose a sample diff --</option>
+          <!-- Populated dynamically via /api/samples -->
+        </select>
+      </div>
+      <button type="button" id="loadSampleBtn" class="btn btn-secondary btn-sm" style="width: 100%;">
+        Load Selected Sample
+      </button>
+    </div>
+
+    <!-- Session History -->
+    <div class="sidebar-title" style="display: flex; justify-content: space-between; align-items: center;">
+      <span>🕒 Session History</span>
+      <button type="button" id="clearHistoryBtn" class="btn btn-secondary btn-sm" style="padding: 0.15rem 0.4rem; font-size: 0.72rem;">Clear</button>
+    </div>
+    <div id="historyContainer" class="sidebar-section" style="border-bottom: none;">
+      <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">No analyses in this session yet.</div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <!-- Hero Header -->
+    <header class="shipmate-hero">
+      <div class="shipmate-title-row">
+        <h1 class="shipmate-brand-title">Shipmate</h1>
+        <span class="shipmate-flow-badge">Code Change → Ready to Ship</span>
+      </div>
+      <p class="shipmate-description">
+        Paste your code change. Shipmate understands what changed first, finds risk, creates a test, and prepares everything you need to ship.
+      </p>
+      <div class="shipmate-flow-steps">
+        <span>1. Paste Diff</span>
+        <span>→</span>
+        <span>2. Analyze Change</span>
+        <span>→</span>
+        <span>3. Ship Score &amp; Risk</span>
+        <span>→</span>
+        <span>4. Verify Tests</span>
+        <span>→</span>
+        <span>5. Review Issues</span>
+        <span>→</span>
+        <span class="step-ship">6. Ready to Ship 🚀</span>
+      </div>
+    </header>
+
+    <!-- Controls & Toolbar -->
+    <section class="toolbar-row">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <button type="button" id="btnTryDemo" class="btn btn-secondary btn-sm">
+          ⚡ Try Demo Change
+        </button>
+        <button type="button" id="btnClearInputs" class="btn btn-secondary btn-sm">
+          Clear
+        </button>
+      </div>
+
+      <div class="btn-group" role="group" aria-label="Input format selector">
+        <button type="button" class="btn-segment active" data-type="Diff">Diff</button>
+        <button type="button" class="btn-segment" data-type="Change">Change</button>
+        <button type="button" class="btn-segment" data-type="Code">Code</button>
+      </div>
+    </section>
+
+    <!-- Code Input Section -->
+    <section class="form-group">
+      <label class="form-label" for="codeTextarea" id="codeLabel">Your Code Change</label>
+      <textarea id="codeTextarea" class="form-textarea" rows="12" placeholder="Paste your git diff, patch, or modified code here (e.g. git diff origin/main)..."></textarea>
+    </section>
+
+    <!-- Context Input Section -->
+    <section class="form-group">
+      <label class="form-label" for="contextInput">Context (Optional)</label>
+      <input type="text" id="contextInput" class="form-input" placeholder="Explain the feature or ticket (e.g. PROD-1042: Add idempotency check for Stripe webhooks)">
+    </section>
+
+    <!-- Primary Action Button -->
+    <div style="margin: 1.25rem 0 1.75rem 0;">
+      <button type="button" id="btnAnalyze" class="btn btn-primary">
+        🚀 Analyze Change
+      </button>
+    </div>
+
+    <!-- Progressive Loading Indicator -->
+    <div id="statusBox" class="status-box">
+      <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.65rem; color: var(--text-main);">
+        Analyzing Code Change...
+      </div>
+      <div class="status-step" id="step1">
+        <span>🔍</span> <span>Understanding code change...</span>
+      </div>
+      <div class="status-step" id="step2">
+        <span>🧠</span> <span>Analyzing affected behavior...</span>
+      </div>
+      <div class="status-step" id="step3">
+        <span>🛡️</span> <span>Looking for potential risks &amp; edge cases...</span>
+      </div>
+      <div class="status-step" id="step4">
+        <span>🧪</span> <span>Generating test scenarios...</span>
+      </div>
+      <div class="status-step" id="step5">
+        <span>📦</span> <span>Preparing your ShipPack...</span>
+      </div>
+    </div>
+
+    <!-- Empty State (Shown before first analysis) -->
+    <div id="emptyState" class="empty-state">
+      <div style="font-size: 2.25rem; margin-bottom: 0.5rem;">🚢</div>
+      <div class="empty-state-title">Ready for Your Next Release</div>
+      <p class="empty-state-desc">
+        Paste a git diff or code change above, or click <strong>⚡ Try Demo Change</strong> to see Shipmate's staff-level risk assessment and automated ShipPack deliverables.
+      </p>
+      <div class="empty-features">
+        <span class="empty-feature-badge">⚡ Ship Score 0–100</span>
+        <span class="empty-feature-badge">🛡️ Risk &amp; Edge Case Detection</span>
+        <span class="empty-feature-badge">🧪 Prioritized Test Scenarios</span>
+        <span class="empty-feature-badge">📦 Complete ShipPack Artifacts</span>
+      </div>
+    </div>
+
+    <!-- Results Container (Hidden until analysis is ready) -->
+    <div id="resultsContainer" style="display: none;">
+      
+      <!-- Top Metrics Dashboard -->
+      <div class="metrics-grid">
+        <!-- Ship Score -->
+        <div class="metric-card score-card">
+          <div>
+            <span class="score-badge-pill" id="scoreBadgePill">Ship Score</span>
+            <div class="score-display-row">
+              <span class="score-number" id="scoreNumber">--</span>
+              <span class="score-scale">/100</span>
+            </div>
+          </div>
+          <div>
+            <div class="score-factor-text" id="scoreFactor">Loading factor...</div>
+            <div class="score-disclaimer">🤖 AI-assisted heuristic readiness indicator</div>
+          </div>
+        </div>
+
+        <!-- Risk Level -->
+        <div class="metric-card">
+          <div>
+            <div class="metric-label">Risk Level</div>
+            <div class="metric-value-row">
+              <span id="riskBadge" class="risk-pill-medium">MEDIUM</span>
+            </div>
+          </div>
+          <div class="metric-caption" id="riskExplanation">Evaluating change safety...</div>
+        </div>
+
+        <!-- Recommended Tests -->
+        <div class="metric-card">
+          <div>
+            <div class="metric-label">Tests Recommended</div>
+            <div class="metric-value-row">
+              <span class="metric-main-value" id="testsCount">0</span>
+              <span class="metric-caption" style="margin-left: 0.25rem;">scenarios</span>
+            </div>
+          </div>
+          <div class="metric-caption" id="testsPriorityNote">Prioritized by impact</div>
+        </div>
+
+        <!-- Shipping Readiness -->
+        <div class="metric-card">
+          <div>
+            <div class="metric-label">Shipping Readiness</div>
+            <div class="metric-value-row">
+              <span id="readinessBadge" class="badge-review">REVIEW RECOMMENDED</span>
+            </div>
+          </div>
+          <div class="metric-caption" id="readinessReason">Pending review</div>
+        </div>
+      </div>
+
+      <!-- Change Intelligence Section -->
+      <section class="intel-container">
+        <div class="intel-header">
+          <div class="intel-title">💡 Change Intelligence</div>
+          <span class="shipmate-flow-badge" id="changeTypeBadge">Feature</span>
+        </div>
+        <div class="intel-field">
+          <div class="intel-label">What Changed</div>
+          <div class="intel-body" id="whatChangedBody"></div>
+        </div>
+        <div class="intel-field" style="margin-bottom: 0;">
+          <div class="intel-label">Why It Changed</div>
+          <div class="intel-box-quote" id="whyChangedBody"></div>
+        </div>
+      </section>
+
+      <!-- Potential Issues Section -->
+      <section style="margin-bottom: 2rem;">
+        <h2 class="section-title">
+          <span>🛡️ Potential Issues &amp; Edge Cases</span>
+          <span style="font-size: 0.82rem; font-weight: normal; color: var(--text-muted); margin-left: 0.5rem;" id="issuesCountBadge">(0 detected)</span>
+        </h2>
+        <div id="issuesList">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Recommended Tests Section -->
+      <section style="margin-bottom: 2rem;">
+        <h2 class="section-title">
+          <span>🧪 Recommended Test Scenarios</span>
+          <span style="font-size: 0.82rem; font-weight: normal; color: var(--text-muted); margin-left: 0.5rem;" id="testsCountBadge">(0 recommended)</span>
+        </h2>
+        <div id="testsList">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- ShipPack Deliverables Section -->
+      <section style="margin-bottom: 3rem;">
+        <div class="deliverables-header-row">
+          <h2 class="section-title" style="margin: 0;">
+            <span>📦 ShipPack Deliverables</span>
+          </h2>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" id="btnCopyShipPack" class="btn btn-secondary btn-sm">
+              📋 Copy Complete ShipPack
+            </button>
+            <button type="button" id="btnDownloadShipPack" class="btn btn-secondary btn-sm">
+              📥 Download ShipPack (.md)
+            </button>
+          </div>
+        </div>
+
+        <!-- Deliverables Navigation Tabs -->
+        <nav class="tab-nav" role="tablist">
+          <button type="button" class="tab-btn active" data-tab="manager">Manager Update</button>
+          <button type="button" class="tab-btn" data-tab="ticket">Ticket Update</button>
+          <button type="button" class="tab-btn" data-tab="tech">Technical Documentation</button>
+          <button type="button" class="tab-btn" data-tab="release">Release Notes</button>
+          <button type="button" class="tab-btn" data-tab="markdown">Raw Markdown</button>
+        </nav>
+
+        <!-- Tab 1: Manager Update -->
+        <div class="tab-pane active" id="tabPaneManager">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Concise, high-level summary suitable for Slack or email to stakeholders:</span>
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-target="managerContent">📋 Copy</button>
+          </div>
+          <div class="code-box" id="managerContent"></div>
+        </div>
+
+        <!-- Tab 2: Ticket Update -->
+        <div class="tab-pane" id="tabPaneTicket">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Structured status update for Jira, Linear, or GitHub Issues:</span>
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-target="ticketContent">📋 Copy</button>
+          </div>
+          <div class="code-box" id="ticketContent"></div>
+        </div>
+
+        <!-- Tab 3: Technical Documentation -->
+        <div class="tab-pane" id="tabPaneTech">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Deep technical context for engineers and code reviewers:</span>
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-target="techContent">📋 Copy</button>
+          </div>
+          <div class="code-box" id="techContent"></div>
+        </div>
+
+        <!-- Tab 4: Release Notes -->
+        <div class="tab-pane" id="tabPaneRelease">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">User-facing or changelog entry describing the observable impact:</span>
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-target="releaseContent">📋 Copy</button>
+          </div>
+          <div class="code-box" id="releaseContent"></div>
+        </div>
+
+        <!-- Tab 5: Raw Markdown -->
+        <div class="tab-pane" id="tabPaneMarkdown">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Complete combined ShipPack markdown ready to paste or save:</span>
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-target="rawMarkdownContent">📋 Copy</button>
+          </div>
+          <div class="code-box" id="rawMarkdownContent"></div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Floating Toast Feedback -->
+<div id="toast" class="toast">
+  <span id="toastIcon">✓</span>
+  <span id="toastMessage">Copied to clipboard!</span>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

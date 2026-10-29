@@ -20,24 +20,7 @@ def get_secret_or_env(key: str, default: Optional[str] = None) -> Optional[str]:
     2. OS Environment variables (os.getenv(KEY)) from .env for local development
     3. Provided default value
     """
-    # 1. Check Streamlit Secrets (Community Cloud)
-    try:
-        import streamlit as st
-        if hasattr(st, "secrets"):
-            if key in st.secrets:
-                val = st.secrets[key]
-                if val is not None and str(val).strip():
-                    return str(val).strip()
-            # Also check lowercase
-            lower_k = key.lower()
-            if lower_k in st.secrets:
-                val = st.secrets[lower_k]
-                if val is not None and str(val).strip():
-                    return str(val).strip()
-    except Exception:
-        pass
-
-    # 2. Check Environment Variables (.env)
+    # 1. Check Standard OS Environment Variables (.env / Vercel Environment Variables)
     env_val = os.getenv(key)
     if env_val and env_val.strip():
         return env_val.strip()
@@ -45,6 +28,17 @@ def get_secret_or_env(key: str, default: Optional[str] = None) -> Optional[str]:
     env_lower = os.getenv(key.lower())
     if env_lower and env_lower.strip():
         return env_lower.strip()
+
+    # 2. Check Streamlit Secrets only if running inside active Streamlit runtime
+    try:
+        import streamlit as st
+        if hasattr(st, "runtime") and hasattr(st.runtime, "exists") and st.runtime.exists():
+            if hasattr(st, "secrets") and key in st.secrets:
+                val = st.secrets[key]
+                if val is not None and str(val).strip():
+                    return str(val).strip()
+    except Exception:
+        pass
 
     return default
 
