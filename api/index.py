@@ -45,6 +45,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from starlette.requests import Request
+
+@app.middleware("http")
+async def fix_vercel_path(request: Request, call_next):
+    """Normalizes request path for Vercel serverless function invocations."""
+    path = request.scope.get("path", "")
+    for prefix in ["/api/index.py", "/index.py"]:
+        if path.startswith(prefix):
+            new_path = path[len(prefix):] or "/"
+            request.scope["path"] = new_path
+            break
+    return await call_next(request)
+
 
 class AnalyzeRequest(BaseModel):
     code: str = Field(..., description="Git diff, patch, or source code to analyze")
@@ -64,6 +77,9 @@ class DeepDiveRequest(BaseModel):
 
 
 @app.get("/api/health")
+@app.get("/health")
+@app.get("/api/index.py/health")
+@app.get("/api/index.py/api/health")
 def health():
     """Health check and environment configuration status."""
     return {
@@ -77,6 +93,9 @@ def health():
 
 
 @app.get("/api/samples")
+@app.get("/samples")
+@app.get("/api/index.py/samples")
+@app.get("/api/index.py/api/samples")
 def get_samples():
     """Returns curated demo change and preset sample diffs."""
     return {
@@ -86,6 +105,9 @@ def get_samples():
 
 
 @app.post("/api/analyze", response_model=ShipPackAnalysis)
+@app.post("/analyze", response_model=ShipPackAnalysis)
+@app.post("/api/index.py/analyze", response_model=ShipPackAnalysis)
+@app.post("/api/index.py/api/analyze", response_model=ShipPackAnalysis)
 def analyze_change(req: AnalyzeRequest):
     """Analyzes a code change and returns a structured ShipPackAnalysis."""
     if not req.code or not req.code.strip():
@@ -110,7 +132,7 @@ def analyze_change(req: AnalyzeRequest):
     except MissingAPIKeyError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"{str(err)} Switch to 'Demo Mode' in the sidebar to test Shipmate without an API key, or configure GEMINI_API_KEY in Vercel Environment Variables."
+            detail=f"{str(err)} Switch to 'Demo Mode' in the sidebar to test ShipMate without an API key, or configure GEMINI_API_KEY in Vercel Environment Variables."
         )
     except RateLimitError as err:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(err))
@@ -123,6 +145,9 @@ def analyze_change(req: AnalyzeRequest):
 
 
 @app.post("/api/deep-dive", response_model=IssueDeepDive)
+@app.post("/deep-dive", response_model=IssueDeepDive)
+@app.post("/api/index.py/deep-dive", response_model=IssueDeepDive)
+@app.post("/api/index.py/api/deep-dive", response_model=IssueDeepDive)
 def deep_dive(req: DeepDiveRequest):
     """Generates an architectural deep dive and advisory code fix for a potential issue."""
     try:
